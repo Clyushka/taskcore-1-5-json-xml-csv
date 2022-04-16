@@ -1,107 +1,48 @@
-import com.google.gson.*;
-import com.opencsv.CSVReader;
-import com.opencsv.bean.ColumnPositionMappingStrategy;
-import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args) {
-        //gson
-        Gson gson = new GsonBuilder().create();
+    static final String[] COLUMN_MAPPING = {"id", "firstName", "lastName", "country", "age"};
+    static final String CSV_FILE_NAME = "data.csv";
+    static final String JSON_FILE_NAME = "data.json";
+    static final String JSON_2_FILE_NAME = "data2.json";
+    static final String XML_FILE_NAME = "data.xml";
 
+    public static void main(String[] args) {
         /**Task 1**/
         /**CSV - JSON парсер**/
-
-        try (CSVReader csvReader = new CSVReader(new FileReader("data.csv"));
-             Writer fw = new FileWriter("data.json")) {
-            //strategy for deserialize
-            ColumnPositionMappingStrategy<Employee> strategyEmployee =
-                    new ColumnPositionMappingStrategy<>();
-            strategyEmployee.setType(Employee.class);
-            strategyEmployee.setColumnMapping("id", "firstName", "lastName", "country", "age");
-
-            //deserialize
-            CsvToBean<Employee> employeeBean = new CsvToBeanBuilder<Employee>(csvReader)
-                    .withMappingStrategy(strategyEmployee)
-                    .build();
-
-            List<Employee> staff = employeeBean.parse();
-
-            //write to file
-            fw.write(gson.toJson(staff));
-            fw.flush();
-        } catch (IOException e) { // | CsvValidationException e) {
-            System.out.println(e.getLocalizedMessage());
-        }
+//        List<Employee> staff = Employee.deserializeFromCSV(COLUMN_MAPPING, CSV_FILE_NAME);
+//        String json = Employee.listToJSON(staff);
+//        writeStringToFile(json, JSON_FILE_NAME);
+        writeStringToFile(Employee.listToJSON(Employee.deserializeFromCSV(COLUMN_MAPPING, CSV_FILE_NAME)), JSON_FILE_NAME);
 
         /**Task 2**/
         /**XML - JSON парсер**/
-        try (Writer fw = new FileWriter("data2.json")) {
-            Document xml = DocumentBuilderFactory.newInstance()
-                    .newDocumentBuilder()
-                    .parse(new File("data.xml"));
-            NodeList nodes = xml.getDocumentElement().getChildNodes();
-
-            List<Employee> staff = new ArrayList<>();
-            for (int i = 0; i < nodes.getLength(); i++) {
-                Node n = nodes.item(i);
-                if (Node.ELEMENT_NODE == n.getNodeType() && n.getNodeName().equals("employee")) {
-                    Element person = (Element) nodes.item(i);
-                    try {
-                        staff.add(new Employee(
-                                Long.parseLong(person.getElementsByTagName("id").item(0).getTextContent()),
-                                person.getElementsByTagName("firstName").item(0).getTextContent(),
-                                person.getElementsByTagName("lastName").item(0).getTextContent(),
-                                person.getElementsByTagName("country").item(0).getTextContent(),
-                                Integer.parseInt(person.getElementsByTagName("age").item(0).getTextContent())
-                        ));
-                    } catch (NumberFormatException e) {
-                        staff.add(new Employee(
-                                0,
-                                person.getElementsByTagName("firstName").item(0).getTextContent(),
-                                person.getElementsByTagName("lastName").item(0).getTextContent(),
-                                person.getElementsByTagName("country").item(0).getTextContent(),
-                                0
-                        ));
-                    }
-                }
-            }
-
-            fw.write(gson.toJson(staff));
-            fw.flush();
-        } catch (ParserConfigurationException | IOException | SAXException | IllegalArgumentException e) {
-            System.out.println(e.getLocalizedMessage());
-        }
+//        List<Employee> staff = Employee.deserializeFromXML(XML_FILE_NAME);
+//        String json = Employee.listToJSON(staff);
+//        writeStringToFile(json, JSON_2_FILE_NAME);
+        writeStringToFile(Employee.listToJSON(Employee.deserializeFromXML(XML_FILE_NAME)), JSON_2_FILE_NAME);
 
         /**Task 3**/
         /**JSON парсер**/
-        JsonParser jsonParser = new JsonParser();
-        try (Reader fr = new FileReader("data.json")) {
-            List<Employee> staff = new ArrayList<>();
+        List<Employee> staff = Employee.deserializeFromJSON(JSON_FILE_NAME);
+        for (Employee employee : staff) {
+            System.out.println(employee);
+        }
+    }
 
-            Object obj = jsonParser.parse(fr);
-            JsonArray jsonArray = (JsonArray) obj;
-
-            for (JsonElement jsonElement : jsonArray) {
-                staff.add(gson.fromJson(jsonElement, Employee.class));
+    public static boolean writeStringToFile(String content, String fileName) {
+        File file = new File(fileName);
+        try (Writer fw = new FileWriter(file)) {
+            if (file.isFile() && !file.exists()) {
+                file.createNewFile();
             }
 
-            for (Employee employee: staff) {
-                System.out.println(employee);
-            }
-        } catch (IOException | ClassCastException e) {
-            System.out.println(e.getLocalizedMessage());
+            fw.write(content);
+            fw.flush();
+            return true;
+        } catch (IOException e) {
+            return false;
         }
     }
 }
