@@ -110,8 +110,10 @@ public class Employee {
         Gson gson = new GsonBuilder().create();
         List<Employee> result = new ArrayList<>();
 
-        try (Reader fr = new FileReader(fileName)) {
-            Object obj = jsonParser.parse(fr);
+        String jsonString = readString(fileName);
+
+        try {
+            Object obj = jsonParser.parse(jsonString);
             JsonArray jsonArray = (JsonArray) obj;
 
             for (JsonElement jsonElement : jsonArray) {
@@ -119,6 +121,18 @@ public class Employee {
             }
 
             return result;
+        } catch (ClassCastException e) {
+            return null;
+        }
+    }
+
+    private static String readString (String fileName) {
+        StringBuilder result = new StringBuilder();
+        try (Reader fr = new FileReader(fileName)) {
+            for (int i = fr.read(); i >= 0; i = fr.read()) {
+                result.append((char) i);
+            }
+            return result.toString();
         } catch (IOException | ClassCastException e) {
             return null;
         }
